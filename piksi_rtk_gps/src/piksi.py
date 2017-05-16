@@ -23,6 +23,7 @@ from sbp.logging import *
 from sbp.system import *
 from sbp.tracking import *  # WARNING: tracking is part of the draft messages, could be removed in future releases of libsbp.
 from sbp.piksi import *  # WARNING: piksi is part of the draft messages, could be removed in future releases of libsbp.
+from sbp.imu import *
 from sbp.observation import SBP_MSG_OBS, SBP_MSG_OBS_DEP_A, SBP_MSG_OBS_DEP_B, SBP_MSG_BASE_POS_LLH, \
     SBP_MSG_BASE_POS_ECEF
 import sbp.version
@@ -35,7 +36,7 @@ import threading
 
 
 class Piksi:
-    LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
+    LIB_SBP_VERSION = '2.2.1'  # sbp version used to test this driver
 
     # Geodetic Constants.
     kSemimajorAxis = 6378137
@@ -159,9 +160,11 @@ class Piksi:
                            SBP_MSG_BASELINE_NED, MsgBaselineNED,
                            'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
         self.init_callback('dops', Dops,
-                           SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop')
+                           SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
         self.init_callback('gps_time', GpsTime,
-                           SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns', 'flags')
+                           SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
+        self.init_callback('utc_time', UtcTime,
+                           SBP_MSG_UTC_TIME, MsgUtcTime, 'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
         self.init_callback('pos_ecef', PosEcef,
                            SBP_MSG_POS_ECEF, MsgPosECEF,
                            'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
@@ -173,6 +176,11 @@ class Piksi:
                            'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
         self.init_callback('log', Log,
                            SBP_MSG_LOG, MsgLog, 'level', 'text')
+        self.init_callback('imu_raw', ImuRaw,
+                           SBP_MSG_IMU_RAW, MsgImuRaw,
+                           'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
+        self.init_callback('imu_aux', ImuAux,
+                           SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
 
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # self.init_callback('pos_llh', PosLlh,
@@ -224,6 +232,8 @@ class Piksi:
                                                      BaselineNed, queue_size=10)
         publishers['gps_time'] = rospy.Publisher(rospy.get_name() + '/gps_time',
                                                  GpsTime, queue_size=10)
+        publishers['utc_time'] = rospy.Publisher(rospy.get_name() + '/utc_time',
+                                                 UtcTime, queue_size=10)
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # publishers['pos_llh'] = rospy.Publisher(rospy.get_name() + '/pos_llh',
         #                                        PosLlh, queue_size=10)
@@ -244,6 +254,8 @@ class Piksi:
                                                       PointStamped, queue_size=10)
         publishers['enu_transform_spp'] = rospy.Publisher(rospy.get_name() + '/enu_transform_spp',
                                                           TransformStamped, queue_size=10)
+        publishers['imu_raw'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
+                                                ImuRaw, queue_size=10)
 
         # Topics published only if in "debug mode"
         if self.debug_mode:
@@ -263,6 +275,8 @@ class Piksi:
                                                             PointStamped, queue_size=10)
             publishers['enu_transform_float'] = rospy.Publisher(rospy.get_name() + '/enu_transform_float',
                                                                 TransformStamped, queue_size=10)
+            publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/imu_aux',
+                                                    ImuAux, queue_size=10)
 
         if not self.base_station_mode:
             publishers['wifi_corrections'] = rospy.Publisher(rospy.get_name() + '/debug/wifi_corrections',

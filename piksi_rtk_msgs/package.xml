@@ -13,8 +13,9 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
-  <depend>message_generation</depend>
+  <build_depend>message_generation</build_depend>
   <depend>message_runtime</depend>
+  
   <depend>rospy</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>

@@ -1,5 +1,5 @@
 # General Settings.
-serial_port: '/dev/piksi' # Use udevrule for piksi.
+serial_port: '/dev/piksi-multi' # Use udevrule for piksi.
 baud_rate: 1000000
 base_station_mode: false
 debug_mode: false # if true, output every topic read by this driver
