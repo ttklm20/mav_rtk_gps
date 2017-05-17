@@ -5,7 +5,7 @@ echo " "
 echo "Installing SBP library"
 
 GIT_REPO_LIBSBP=git@github.com:swift-nav/libsbp.git
-REPO_TAG=v2.2.1 #version you want to chechout before installing
+REPO_TAG=v1.2.1 #version you want to chechout before installing
 
 # Install libsbp in $HOME and compile it
 mkdir -p ~/software/piksi_sbp_lib
