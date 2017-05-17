@@ -53,9 +53,7 @@ class Piksi:
         # Check which device is used (piksi v2 / piksi multi)
         self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
         
-        self.prefix = ''
-        if self.use_piksi_multi:
-            self.prefix = 'piksi_multi/'
+        self.prefix = 'piksi_multi/' if self.use_piksi_multi == True else ''
         
         # Print info.
         rospy.sleep(0.5)  # wait for a while for init to complete before printing
