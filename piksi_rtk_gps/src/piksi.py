@@ -25,6 +25,10 @@ from sbp.tracking import *  # WARNING: tracking is part of the draft messages, c
 from sbp.piksi import *  # WARNING: piksi is part of the draft messages, could be removed in future releases of libsbp.
 from sbp.observation import SBP_MSG_OBS, SBP_MSG_OBS_DEP_A, SBP_MSG_OBS_DEP_B, SBP_MSG_BASE_POS_LLH, \
     SBP_MSG_BASE_POS_ECEF
+try:
+    from sbp.imu import *
+except ImportError:
+    pass
 import sbp.version
 # networking stuff
 import UdpHelpers
@@ -36,6 +40,7 @@ import threading
 
 class Piksi:
     LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
+    LIB_SBP_VERSION_MULTI = '2.2.1' # sbp version used for Piksi Multi
         
     # Geodetic Constants.
     kSemimajorAxis = 6378137
@@ -48,25 +53,27 @@ class Piksi:
         # Check which device is used (piksi v2 / piksi multi)
         self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
         
+        self.prefix = ''
         if self.use_piksi_multi:
-            from sbp.imu import SBP_MSG_IMU_AUX, SBP_MSG_IMU_RAW
-            Piksi.LIB_SBP_VERSION = '2.2.1' # sbp version used to test this driver
-            self.prefix = 'piksi_multi'
-        else:
-            self.prefix = 'piksi'
+            self.prefix = 'piksi_multi/'
         
         # Print info.
         rospy.sleep(0.5)  # wait for a while for init to complete before printing
         rospy.loginfo(rospy.get_name() + " start")
         rospy.loginfo("libsbp version currently used: " + sbp.version.get_git_version())
 
-        if Piksi.LIB_SBP_VERSION != sbp.version.get_git_version():
-            rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
-                sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION))
+        if self.use_piksi_multi:
+            if Piksi.LIB_SBP_VERSION_MULTI != sbp.version.get_git_version():
+                rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
+                    sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION_MULTI))
+        else:
+            if Piksi.LIB_SBP_VERSION != sbp.version.get_git_version():
+                rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
+                    sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION))
 
-        
-        serial_port = rospy.get_param('~' + self.prefix + '/serial_port', '/dev/ttyUSB0')
-        baud_rate = rospy.get_param('~' + self.prefix + '/baud_rate', 1000000)
+        # Open a connection to Piksi.
+        serial_port = rospy.get_param('~' + self.prefix + 'serial_port', '/dev/ttyUSB0')
+        baud_rate = rospy.get_param('~' + self.prefix + 'baud_rate', 1000000)
 
         try:
             self.driver = PySerialDriver(serial_port, baud=baud_rate)
@@ -274,15 +281,14 @@ class Piksi:
                                                       PointStamped, queue_size=10)
         publishers['enu_transform_spp'] = rospy.Publisher(rospy.get_name() + '/enu_transform_spp',
                                                           TransformStamped, queue_size=10)
-        # Topics dependent on piksi (v2 / multi)
-        if not self.use_piksi_multi:
+        if not self.use_piksi_multi: # Piksi v2
             publishers['gps_time'] = rospy.Publisher(rospy.get_name() + '/gps_time',
                                                  GpsTime, queue_size=10)
             publishers['baseline_ned'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
                                                      BaselineNed, queue_size=10)
-        else:
+        else: # Piksi Multi
             publishers['gps_time_multi'] = rospy.Publisher(rospy.get_name() + '/gps_time',
-                                                 GpsTime, queue_size=10)
+                                                 GpsTimeMulti, queue_size=10)
             publishers['baseline_ned_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
                                                      BaselineNed, queue_size=10)
             publishers['utc_time'] = rospy.Publisher(rospy.get_name() + '/utc_time',
@@ -312,11 +318,11 @@ class Piksi:
                                                          PosEcef, queue_size=10)
             else: # Piksi Multi
                 publishers['baseline_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
-                                                              BaselineEcef, queue_size=10)
+                                                              BaselineEcefMulti, queue_size=10)
                 publishers['dops_multi'] = rospy.Publisher(rospy.get_name() + '/dops',
-                                                     Dops, queue_size=10)
+                                                     DopsMulti, queue_size=10)
                 publishers['pos_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
-                                                         PosEcef, queue_size=10)
+                                                         PosEcefMulti, queue_size=10)
 
         if not self.base_station_mode:
             publishers['wifi_corrections'] = rospy.Publisher(rospy.get_name() + '/debug/wifi_corrections',
