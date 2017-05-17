@@ -9,3 +9,4 @@ uint16 pdop # Position Dilution of Precision.
 uint16 tdop # Time Dilution of Precision.
 uint16 hdop # Horizontal Dilution of Precision.
 uint16 vdop # Vertical Dilution of Precision.
+uint8 flags # Indicates the position solution with which the DOPS message corresponds.
