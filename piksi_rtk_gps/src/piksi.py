@@ -256,6 +256,8 @@ class Piksi:
                                                           TransformStamped, queue_size=10)
         publishers['imu_raw'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
                                                 ImuRaw, queue_size=10)
+        publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
+                                                    ImuAux, queue_size=10)
 
         # Topics published only if in "debug mode"
         if self.debug_mode:
@@ -275,8 +277,6 @@ class Piksi:
                                                             PointStamped, queue_size=10)
             publishers['enu_transform_float'] = rospy.Publisher(rospy.get_name() + '/enu_transform_float',
                                                                 TransformStamped, queue_size=10)
-            publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/imu_aux',
-                                                    ImuAux, queue_size=10)
 
         if not self.base_station_mode:
             publishers['wifi_corrections'] = rospy.Publisher(rospy.get_name() + '/debug/wifi_corrections',
