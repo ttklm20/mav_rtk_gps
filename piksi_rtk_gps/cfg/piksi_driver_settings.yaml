@@ -1,6 +1,11 @@
 # General Settings.
-serial_port: '/dev/piksi-multi' # Use udevrule for piksi.
-baud_rate: 115200 #1000000
+use_piksi_multi: true # true for 'piksi multi', false for 'piksi v2'
+piksi:
+  serial_port: '/dev/piksi' # Use udevrule for piksi.
+  baud_rate: 1000000
+piksi_multi:
+  serial_port: '/dev/piksi-multi'
+  baud_rate: 115200
 base_station_mode: false
 debug_mode: false # if true, output every topic read by this driver
 # whenever possible, use network broadcast, not global ip broadcast

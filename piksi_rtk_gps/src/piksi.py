@@ -23,7 +23,6 @@ from sbp.logging import *
 from sbp.system import *
 from sbp.tracking import *  # WARNING: tracking is part of the draft messages, could be removed in future releases of libsbp.
 from sbp.piksi import *  # WARNING: piksi is part of the draft messages, could be removed in future releases of libsbp.
-from sbp.imu import *
 from sbp.observation import SBP_MSG_OBS, SBP_MSG_OBS_DEP_A, SBP_MSG_OBS_DEP_B, SBP_MSG_BASE_POS_LLH, \
     SBP_MSG_BASE_POS_ECEF
 import sbp.version
@@ -36,8 +35,8 @@ import threading
 
 
 class Piksi:
-    LIB_SBP_VERSION = '2.2.1'  # sbp version used to test this driver
-
+    LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
+        
     # Geodetic Constants.
     kSemimajorAxis = 6378137
     kSemiminorAxis = 6356752.3142
@@ -46,6 +45,16 @@ class Piksi:
     kFlattening = 1 / 298.257223563
 
     def __init__(self):
+        # Check which device is used (piksi v2 / piksi multi)
+        self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
+        
+        if self.use_piksi_multi:
+            from sbp.imu import SBP_MSG_IMU_AUX, SBP_MSG_IMU_RAW
+            Piksi.LIB_SBP_VERSION = '2.2.1' # sbp version used to test this driver
+            self.prefix = 'piksi_multi'
+        else:
+            self.prefix = 'piksi'
+        
         # Print info.
         rospy.sleep(0.5)  # wait for a while for init to complete before printing
         rospy.loginfo(rospy.get_name() + " start")
@@ -55,9 +64,9 @@ class Piksi:
             rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
                 sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION))
 
-        # Open a connection to Piksi.
-        serial_port = rospy.get_param('~serial_port', '/dev/ttyUSB0')
-        baud_rate = rospy.get_param('~baud_rate', 1000000)
+        
+        serial_port = rospy.get_param('~' + self.prefix + '/serial_port', '/dev/ttyUSB0')
+        baud_rate = rospy.get_param('~' + self.prefix + '/baud_rate', 1000000)
 
         try:
             self.driver = PySerialDriver(serial_port, baud=baud_rate)
@@ -153,34 +162,51 @@ class Piksi:
         self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE_DEPA)
 
         # Callbacks generated based on ROS messages definitions.
-        self.init_callback('baseline_ecef', BaselineEcef,
-                           SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
-                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-        self.init_callback('baseline_ned', BaselineNed,
-                           SBP_MSG_BASELINE_NED, MsgBaselineNED,
-                           'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
-        self.init_callback('dops', Dops,
-                           SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
-        self.init_callback('gps_time', GpsTime,
-                           SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
-        self.init_callback('utc_time', UtcTime,
-                           SBP_MSG_UTC_TIME, MsgUtcTime, 'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
-        self.init_callback('pos_ecef', PosEcef,
-                           SBP_MSG_POS_ECEF, MsgPosECEF,
-                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-        self.init_callback('vel_ecef', VelEcef,
-                           SBP_MSG_VEL_ECEF, MsgVelECEF,
-                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-        self.init_callback('vel_ned', VelNed,
-                           SBP_MSG_VEL_NED, MsgVelNED,
-                           'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
-        self.init_callback('log', Log,
-                           SBP_MSG_LOG, MsgLog, 'level', 'text')
-        self.init_callback('imu_raw', ImuRaw,
-                           SBP_MSG_IMU_RAW, MsgImuRaw,
-                           'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
-        self.init_callback('imu_aux', ImuAux,
-                           SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
+        if not self.use_piksi_multi: # Piksi v2 specific messages
+            self.init_callback('baseline_ecef', BaselineEcef,
+                               SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
+                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+            self.init_callback('baseline_ned', BaselineNed,
+                               SBP_MSG_BASELINE_NED, MsgBaselineNED,
+                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+            self.init_callback('dops', Dops,
+                               SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop')
+            self.init_callback('gps_time', GpsTime,
+                               SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns', 'flags')
+            self.init_callback('pos_ecef', PosEcef,
+                               SBP_MSG_POS_ECEF, MsgPosECEF,
+                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+            self.init_callback('vel_ecef', VelEcef,
+                               SBP_MSG_VEL_ECEF, MsgVelECEF,
+                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+            self.init_callback('vel_ned', VelNed,
+                               SBP_MSG_VEL_NED, MsgVelNED,
+                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+            self.init_callback('log', Log,
+                               SBP_MSG_LOG, MsgLog, 'level', 'text')
+            
+        else: # Piksi Multi specific messages
+            self.init_callback('baseline_ecef_multi', BaselineEcefMulti,
+                               SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
+                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+            self.init_callback('baseline_ned_multi', BaselineNedMulti,
+                               SBP_MSG_BASELINE_NED, MsgBaselineNED,
+                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+            self.init_callback('dops_multi', DopsMulti,
+                               SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
+            self.init_callback('gps_time_multi', GpsTimeMulti,
+                               SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
+            self.init_callback('utc_time', UtcTime,
+                               SBP_MSG_UTC_TIME, MsgUtcTime,
+                               'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
+            self.init_callback('pos_ecef_multi', PosEcefMulti,
+                               SBP_MSG_POS_ECEF, MsgPosECEF,
+                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+            self.init_callback('imu_raw', ImuRaw,
+                               SBP_MSG_IMU_RAW, MsgImuRaw,
+                               'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
+            self.init_callback('imu_aux', ImuAux,
+                               SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
 
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # self.init_callback('pos_llh', PosLlh,
@@ -228,12 +254,6 @@ class Piksi:
                                                        ReceiverState, queue_size=10)
         publishers['uart_state'] = rospy.Publisher(rospy.get_name() + '/debug/uart_state',
                                                    UartState, queue_size=10)
-        publishers['baseline_ned'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
-                                                     BaselineNed, queue_size=10)
-        publishers['gps_time'] = rospy.Publisher(rospy.get_name() + '/gps_time',
-                                                 GpsTime, queue_size=10)
-        publishers['utc_time'] = rospy.Publisher(rospy.get_name() + '/utc_time',
-                                                 UtcTime, queue_size=10)
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # publishers['pos_llh'] = rospy.Publisher(rospy.get_name() + '/pos_llh',
         #                                        PosLlh, queue_size=10)
@@ -254,21 +274,27 @@ class Piksi:
                                                       PointStamped, queue_size=10)
         publishers['enu_transform_spp'] = rospy.Publisher(rospy.get_name() + '/enu_transform_spp',
                                                           TransformStamped, queue_size=10)
-        publishers['imu_raw'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
+        # Topics dependent on piksi (v2 / multi)
+        if not self.use_piksi_multi:
+            publishers['gps_time'] = rospy.Publisher(rospy.get_name() + '/gps_time',
+                                                 GpsTime, queue_size=10)
+            publishers['baseline_ned'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
+                                                     BaselineNed, queue_size=10)
+        else:
+            publishers['gps_time_multi'] = rospy.Publisher(rospy.get_name() + '/gps_time',
+                                                 GpsTime, queue_size=10)
+            publishers['baseline_ned_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
+                                                     BaselineNed, queue_size=10)
+            publishers['utc_time'] = rospy.Publisher(rospy.get_name() + '/utc_time',
+                                                 UtcTime, queue_size=10)
+            publishers['imu_raw'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
                                                 ImuRaw, queue_size=10)
-        publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
+            publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
                                                     ImuAux, queue_size=10)
-
         # Topics published only if in "debug mode"
         if self.debug_mode:
             publishers['rtk_float'] = rospy.Publisher(rospy.get_name() + '/navsatfix_rtk_float',
                                                       NavSatFix, queue_size=10)
-            publishers['baseline_ecef'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
-                                                          BaselineEcef, queue_size=10)
-            publishers['dops'] = rospy.Publisher(rospy.get_name() + '/dops',
-                                                 Dops, queue_size=10)
-            publishers['pos_ecef'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
-                                                     PosEcef, queue_size=10)
             publishers['vel_ecef'] = rospy.Publisher(rospy.get_name() + '/vel_ecef',
                                                      VelEcef, queue_size=10)
             publishers['enu_pose_float'] = rospy.Publisher(rospy.get_name() + '/enu_pose_float',
@@ -277,6 +303,20 @@ class Piksi:
                                                             PointStamped, queue_size=10)
             publishers['enu_transform_float'] = rospy.Publisher(rospy.get_name() + '/enu_transform_float',
                                                                 TransformStamped, queue_size=10)
+            if not self.use_piksi_multi: # Piksi V2
+                publishers['baseline_ecef'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
+                                                              BaselineEcef, queue_size=10)
+                publishers['dops'] = rospy.Publisher(rospy.get_name() + '/dops',
+                                                     Dops, queue_size=10)
+                publishers['pos_ecef'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
+                                                         PosEcef, queue_size=10)
+            else: # Piksi Multi
+                publishers['baseline_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
+                                                              BaselineEcef, queue_size=10)
+                publishers['dops_multi'] = rospy.Publisher(rospy.get_name() + '/dops',
+                                                     Dops, queue_size=10)
+                publishers['pos_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
+                                                         PosEcef, queue_size=10)
 
         if not self.base_station_mode:
             publishers['wifi_corrections'] = rospy.Publisher(rospy.get_name() + '/debug/wifi_corrections',
