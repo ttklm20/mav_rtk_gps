@@ -25,6 +25,7 @@ from sbp.tracking import *  # WARNING: tracking is part of the draft messages, c
 from sbp.piksi import *  # WARNING: piksi is part of the draft messages, could be removed in future releases of libsbp.
 from sbp.observation import SBP_MSG_OBS, SBP_MSG_OBS_DEP_A, SBP_MSG_OBS_DEP_B, SBP_MSG_BASE_POS_LLH, \
     SBP_MSG_BASE_POS_ECEF
+# Piksi Multi features an IMU
 try:
     from sbp.imu import *
 except ImportError:
@@ -52,22 +53,19 @@ class Piksi:
     def __init__(self):
         # Check which device is used (piksi v2 / piksi multi)
         self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
-        
+
         self.prefix = 'piksi_multi/' if self.use_piksi_multi == True else ''
-        
+
         # Print info.
         rospy.sleep(0.5)  # wait for a while for init to complete before printing
         rospy.loginfo(rospy.get_name() + " start")
         rospy.loginfo("libsbp version currently used: " + sbp.version.get_git_version())
 
-        if self.use_piksi_multi:
-            if Piksi.LIB_SBP_VERSION_MULTI != sbp.version.get_git_version():
-                rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
-                    sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION_MULTI))
-        else:
-            if Piksi.LIB_SBP_VERSION != sbp.version.get_git_version():
-                rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
-                    sbp.version.get_git_version(), Piksi.LIB_SBP_VERSION))
+        # Check for correct SBP library version dependent on Piksi device
+        lib_sbp_version = Piksi.LIB_SBP_VERSION if self.use_piksi_multi == False else Piksi.LIB_SBP_VERSION_MULTI
+        if lib_sbp_version != sbp.version.get_git_version():
+            rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
+                sbp.version.get_git_version(), lib_sbp_version))
 
         # Open a connection to Piksi.
         serial_port = rospy.get_param('~' + self.prefix + 'serial_port', '/dev/ttyUSB0')
@@ -201,16 +199,16 @@ class Piksi:
                                SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
             self.init_callback('gps_time_multi', GpsTimeMulti,
                                SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
-            self.init_callback('utc_time', UtcTime,
+            self.init_callback('utc_time', UtcTimeMulti,
                                SBP_MSG_UTC_TIME, MsgUtcTime,
                                'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
             self.init_callback('pos_ecef_multi', PosEcefMulti,
                                SBP_MSG_POS_ECEF, MsgPosECEF,
                                'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('imu_raw', ImuRaw,
+            self.init_callback('imu_raw', ImuRawMulti,
                                SBP_MSG_IMU_RAW, MsgImuRaw,
                                'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
-            self.init_callback('imu_aux', ImuAux,
+            self.init_callback('imu_aux', ImuAuxMulti,
                                SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
 
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
@@ -288,13 +286,13 @@ class Piksi:
             publishers['gps_time_multi'] = rospy.Publisher(rospy.get_name() + '/gps_time',
                                                  GpsTimeMulti, queue_size=10)
             publishers['baseline_ned_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
-                                                     BaselineNed, queue_size=10)
-            publishers['utc_time'] = rospy.Publisher(rospy.get_name() + '/utc_time',
-                                                 UtcTime, queue_size=10)
-            publishers['imu_raw'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
-                                                ImuRaw, queue_size=10)
-            publishers['imu_aux'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
-                                                    ImuAux, queue_size=10)
+                                                     BaselineNedMulti, queue_size=10)
+            publishers['utc_time_multi'] = rospy.Publisher(rospy.get_name() + '/utc_time',
+                                                 UtcTimeMulti, queue_size=10)
+            publishers['imu_raw_multi'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
+                                                ImuRawMulti, queue_size=10)
+            publishers['imu_aux_multi'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
+                                                    ImuAuxMulti, queue_size=10)
         # Topics published only if in "debug mode"
         if self.debug_mode:
             publishers['rtk_float'] = rospy.Publisher(rospy.get_name() + '/navsatfix_rtk_float',
