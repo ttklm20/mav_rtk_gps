@@ -54,8 +54,6 @@ class Piksi:
         # Check which device is used (piksi v2 / piksi multi)
         self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
 
-        self.prefix = 'piksi_multi/' if self.use_piksi_multi == True else ''
-
         # Print info.
         rospy.sleep(0.5)  # wait for a while for init to complete before printing
         rospy.loginfo(rospy.get_name() + " start")
@@ -68,8 +66,8 @@ class Piksi:
                 sbp.version.get_git_version(), lib_sbp_version))
 
         # Open a connection to Piksi.
-        serial_port = rospy.get_param('~' + self.prefix + 'serial_port', '/dev/ttyUSB0')
-        baud_rate = rospy.get_param('~' + self.prefix + 'baud_rate', 1000000)
+        serial_port = rospy.get_param('~serial_port', '/dev/ttyUSB0')
+        baud_rate = rospy.get_param('~baud_rate', 1000000)
 
         try:
             self.driver = PySerialDriver(serial_port, baud=baud_rate)
