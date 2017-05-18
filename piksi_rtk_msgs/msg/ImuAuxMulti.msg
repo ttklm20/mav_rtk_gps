@@ -3,6 +3,6 @@
 
 Header header
 
-uint8 imu_type  # IMU type
-int16 temp      # Raw IMU temperature
-uint8 imu_conf  # IMU configuration
+uint8 imu_type  # IMU type.
+int16 temp      # Raw IMU temperature.
+uint8 imu_conf  # IMU configuration.
