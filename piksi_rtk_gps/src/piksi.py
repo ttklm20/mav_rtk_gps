@@ -35,7 +35,7 @@ import time
 import subprocess
 import re
 import threading
-
+from sbp.piksi import MsgUartState, SBP_MSG_UART_STATE
 
 class Piksi:
     LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
@@ -157,8 +157,7 @@ class Piksi:
         self.handler.add_callback(self.navsatfix_callback, msg_type=SBP_MSG_POS_LLH)
         self.handler.add_callback(self.heartbeat_callback, msg_type=SBP_MSG_HEARTBEAT)
         self.handler.add_callback(self.tracking_state_callback, msg_type=SBP_MSG_TRACKING_STATE)
-        # for now use deprecated uart_msg, as the latest one doesn't seem to work properly with libspb 1.2.1
-        self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE_DEPA)
+        self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE)
 
         self.init_callback('baseline_ecef_multi', BaselineEcefMulti,
                            SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
@@ -234,8 +233,8 @@ class Piksi:
                                                        TrackingState, queue_size=10)
         publishers['receiver_state'] = rospy.Publisher(rospy.get_name() + '/debug/receiver_state',
                                                        ReceiverState, queue_size=10)
-        publishers['uart_state'] = rospy.Publisher(rospy.get_name() + '/debug/uart_state',
-                                                   UartState, queue_size=10)
+        publishers['uart_state_multi'] = rospy.Publisher(rospy.get_name() + '/debug/uart_state',
+                                                         UartStateMulti, queue_size=10)
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # publishers['pos_llh'] = rospy.Publisher(rospy.get_name() + '/pos_llh',
         #                                        PosLlh, queue_size=10)
@@ -339,8 +338,9 @@ class Piksi:
             sbp_message = sbp_type(msg)
             ros_message.header.stamp = rospy.Time.now()
             for attr in attrs:
-                if attr == 'flags' and (flags & 0x07) == 0:
-                    return
+                if attr == 'flags':
+                    if (msg.flags & 0x07) == 0:
+                        return
                 else:
                     setattr(ros_message, attr, getattr(sbp_message, attr))
             pub.publish(ros_message)
@@ -412,8 +412,9 @@ class Piksi:
         elif msg.flags == 1:
             self.publish_spp(msg.lat, msg.lon, msg.height)
             
-        #TODO: elif msg.flags == 2 (Differential GNSS (DGNSS))
-
+        #TODO: Differential GNSS (DGNSS)
+        #elif msg.flags == 2
+        
         # RTK GPS messages.
         elif msg.flags == 3 or msg.flags == 4:
 
@@ -555,9 +556,10 @@ class Piksi:
 
     def uart_state_callback(self, msg_raw, **metadata):
         # for now use deprecated uart_msg, as the latest one doesn't seem to work properly with libspb 1.2.1
-        msg = MsgUartStateDepa(msg_raw)
+#         msg = MsgUartStateDepa(msg_raw)
+        msg = MsgUartState(msg_raw)
 
-        uart_state_msg = UartState()
+        uart_state_msg = UartStateMulti()
         uart_state_msg.header.stamp = rospy.Time.now()
 
         uart_state_msg.uart_a_tx_throughput = msg.uart_a.tx_throughput
@@ -573,13 +575,25 @@ class Piksi:
         uart_state_msg.uart_b_io_error_count = msg.uart_b.io_error_count
         uart_state_msg.uart_b_tx_buffer_level = msg.uart_b.tx_buffer_level
         uart_state_msg.uart_b_rx_buffer_level = msg.uart_b.rx_buffer_level
+        
+        uart_state_msg.uart_ftdi_tx_throughput = msg.uart_ftdi.tx_throughput
+        uart_state_msg.uart_ftdi_rx_throughput = msg.uart_ftdi.rx_throughput
+        uart_state_msg.uart_ftdi_crc_error_count = msg.uart_ftdi.crc_error_count
+        uart_state_msg.uart_ftdi_io_error_count = msg.uart_ftdi.io_error_count
+        uart_state_msg.uart_ftdi_tx_buffer_level = msg.uart_ftdi.tx_buffer_level
+        uart_state_msg.uart_ftdi_rx_buffer_level = msg.uart_ftdi.rx_buffer_level
 
         uart_state_msg.latency_avg = msg.latency.avg
         uart_state_msg.latency_lmin = msg.latency.lmin
         uart_state_msg.latency_lmax = msg.latency.lmax
         uart_state_msg.latency_current = msg.latency.current
+        
+        uart_state_msg.obs_period_avg = msg.obs_period.avg
+        uart_state_msg.obs_period_pmin = msg.obs_period.pmin
+        uart_state_msg.obs_period_pmax = msg.obs_period.pmax
+        uart_state_msg.obs_period_current = msg.obs_period.current
 
-        self.publishers['uart_state'].publish(uart_state_msg)
+        self.publishers['uart_state_multi'].publish(uart_state_msg)
 
     def init_geodetic_reference(self, latitude, longitude, altitude):
         if self.origin_enu_set:
