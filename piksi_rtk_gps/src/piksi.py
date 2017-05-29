@@ -25,11 +25,9 @@ from sbp.tracking import *  # WARNING: tracking is part of the draft messages, c
 from sbp.piksi import *  # WARNING: piksi is part of the draft messages, could be removed in future releases of libsbp.
 from sbp.observation import SBP_MSG_OBS, SBP_MSG_OBS_DEP_A, SBP_MSG_OBS_DEP_B, SBP_MSG_BASE_POS_LLH, \
     SBP_MSG_BASE_POS_ECEF
+from zope.interface.exceptions import Invalid
 # Piksi Multi features an IMU
-try:
-    from sbp.imu import *
-except ImportError:
-    pass
+from sbp.imu import *
 import sbp.version
 # networking stuff
 import UdpHelpers
@@ -42,7 +40,7 @@ import threading
 class Piksi:
     LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
     LIB_SBP_VERSION_MULTI = '2.2.1' # sbp version used for Piksi Multi
-        
+
     # Geodetic Constants.
     kSemimajorAxis = 6378137
     kSemiminorAxis = 6356752.3142
@@ -162,52 +160,35 @@ class Piksi:
         # for now use deprecated uart_msg, as the latest one doesn't seem to work properly with libspb 1.2.1
         self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE_DEPA)
 
-        # Callbacks generated based on ROS messages definitions.
-        if not self.use_piksi_multi: # Piksi v2 specific messages
-            self.init_callback('baseline_ecef', BaselineEcef,
-                               SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
-                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('baseline_ned', BaselineNed,
-                               SBP_MSG_BASELINE_NED, MsgBaselineNED,
-                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
-            self.init_callback('dops', Dops,
-                               SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop')
-            self.init_callback('gps_time', GpsTime,
-                               SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns', 'flags')
-            self.init_callback('pos_ecef', PosEcef,
-                               SBP_MSG_POS_ECEF, MsgPosECEF,
-                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('vel_ecef', VelEcef,
-                               SBP_MSG_VEL_ECEF, MsgVelECEF,
-                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('vel_ned', VelNed,
-                               SBP_MSG_VEL_NED, MsgVelNED,
-                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
-            self.init_callback('log', Log,
-                               SBP_MSG_LOG, MsgLog, 'level', 'text')
-            
-        else: # Piksi Multi specific messages
-            self.init_callback('baseline_ecef_multi', BaselineEcefMulti,
-                               SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
-                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('baseline_ned_multi', BaselineNedMulti,
-                               SBP_MSG_BASELINE_NED, MsgBaselineNED,
-                               'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
-            self.init_callback('dops_multi', DopsMulti,
-                               SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
-            self.init_callback('gps_time_multi', GpsTimeMulti,
-                               SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
-            self.init_callback('utc_time', UtcTimeMulti,
-                               SBP_MSG_UTC_TIME, MsgUtcTime,
-                               'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
-            self.init_callback('pos_ecef_multi', PosEcefMulti,
-                               SBP_MSG_POS_ECEF, MsgPosECEF,
-                               'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
-            self.init_callback('imu_raw', ImuRawMulti,
-                               SBP_MSG_IMU_RAW, MsgImuRaw,
-                               'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
-            self.init_callback('imu_aux', ImuAuxMulti,
-                               SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
+        self.init_callback('baseline_ecef_multi', BaselineEcefMulti,
+                           SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
+                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+        self.init_callback('baseline_ned_multi', BaselineNedMulti,
+                           SBP_MSG_BASELINE_NED, MsgBaselineNED,
+                           'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+        self.init_callback('dops_multi', DopsMulti,
+                           SBP_MSG_DOPS, MsgDops, 'tow', 'gdop', 'pdop', 'tdop', 'hdop', 'vdop', 'flags')
+        self.init_callback('gps_time_multi', GpsTimeMulti,
+                           SBP_MSG_GPS_TIME, MsgGPSTime, 'wn', 'tow', 'ns_residual', 'flags')
+        self.init_callback('utc_time_multi', UtcTimeMulti,
+                           SBP_MSG_UTC_TIME, MsgUtcTime,
+                           'flags', 'tow', 'year', 'month', 'day', 'hours', 'minutes', 'seconds', 'ns')
+        self.init_callback('pos_ecef_multi', PosEcefMulti,
+                           SBP_MSG_POS_ECEF, MsgPosECEF,
+                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+        self.init_callback('vel_ecef', VelEcef,
+                           SBP_MSG_VEL_ECEF, MsgVelECEF,
+                           'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
+        self.init_callback('vel_ned', VelNed,
+                           SBP_MSG_VEL_NED, MsgVelNED,
+                           'tow', 'n', 'e', 'd', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+        self.init_callback('imu_raw', ImuRawMulti,
+                           SBP_MSG_IMU_RAW, MsgImuRaw,
+                           'tow', 'tow_f', 'acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z')
+        self.init_callback('imu_aux', ImuAuxMulti,
+                           SBP_MSG_IMU_AUX, MsgImuAux, 'imu_type', 'temp', 'imu_conf')
+        self.init_callback('log', Log,
+                           SBP_MSG_LOG, MsgLog, 'level', 'text')
 
         # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # self.init_callback('pos_llh', PosLlh,
@@ -275,22 +256,16 @@ class Piksi:
                                                       PointStamped, queue_size=10)
         publishers['enu_transform_spp'] = rospy.Publisher(rospy.get_name() + '/enu_transform_spp',
                                                           TransformStamped, queue_size=10)
-        if not self.use_piksi_multi: # Piksi v2
-            publishers['gps_time'] = rospy.Publisher(rospy.get_name() + '/gps_time',
-                                                 GpsTime, queue_size=10)
-            publishers['baseline_ned'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
-                                                     BaselineNed, queue_size=10)
-        else: # Piksi Multi
-            publishers['gps_time_multi'] = rospy.Publisher(rospy.get_name() + '/gps_time',
-                                                 GpsTimeMulti, queue_size=10)
-            publishers['baseline_ned_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
-                                                     BaselineNedMulti, queue_size=10)
-            publishers['utc_time_multi'] = rospy.Publisher(rospy.get_name() + '/utc_time',
-                                                 UtcTimeMulti, queue_size=10)
-            publishers['imu_raw_multi'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
-                                                ImuRawMulti, queue_size=10)
-            publishers['imu_aux_multi'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
-                                                    ImuAuxMulti, queue_size=10)
+        publishers['gps_time_multi'] = rospy.Publisher(rospy.get_name() + '/gps_time',
+                                                       GpsTimeMulti, queue_size=10)
+        publishers['baseline_ned_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ned',
+                                                           BaselineNedMulti, queue_size=10)
+        publishers['utc_time_multi'] = rospy.Publisher(rospy.get_name() + '/utc_time',
+                                                       UtcTimeMulti, queue_size=10)
+        publishers['imu_raw_multi'] = rospy.Publisher(rospy.get_name() + '/imu_raw',
+                                                      ImuRawMulti, queue_size=10)
+        publishers['imu_aux_multi'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
+                                                      ImuAuxMulti, queue_size=10)
         # Topics published only if in "debug mode"
         if self.debug_mode:
             publishers['rtk_float'] = rospy.Publisher(rospy.get_name() + '/navsatfix_rtk_float',
@@ -303,20 +278,12 @@ class Piksi:
                                                             PointStamped, queue_size=10)
             publishers['enu_transform_float'] = rospy.Publisher(rospy.get_name() + '/enu_transform_float',
                                                                 TransformStamped, queue_size=10)
-            if not self.use_piksi_multi: # Piksi V2
-                publishers['baseline_ecef'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
-                                                              BaselineEcef, queue_size=10)
-                publishers['dops'] = rospy.Publisher(rospy.get_name() + '/dops',
-                                                     Dops, queue_size=10)
-                publishers['pos_ecef'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
-                                                         PosEcef, queue_size=10)
-            else: # Piksi Multi
-                publishers['baseline_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
-                                                              BaselineEcefMulti, queue_size=10)
-                publishers['dops_multi'] = rospy.Publisher(rospy.get_name() + '/dops',
-                                                     DopsMulti, queue_size=10)
-                publishers['pos_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
-                                                         PosEcefMulti, queue_size=10)
+            publishers['baseline_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/baseline_ecef',
+                                                                BaselineEcefMulti, queue_size=10)
+            publishers['dops_multi'] = rospy.Publisher(rospy.get_name() + '/dops',
+                                                       DopsMulti, queue_size=10)
+            publishers['pos_ecef_multi'] = rospy.Publisher(rospy.get_name() + '/pos_ecef',
+                                                           PosEcefMulti, queue_size=10)
 
         if not self.base_station_mode:
             publishers['wifi_corrections'] = rospy.Publisher(rospy.get_name() + '/debug/wifi_corrections',
@@ -372,7 +339,10 @@ class Piksi:
             sbp_message = sbp_type(msg)
             ros_message.header.stamp = rospy.Time.now()
             for attr in attrs:
-                setattr(ros_message, attr, getattr(sbp_message, attr))
+                if attr == 'flags' and (flags & 0x07) == 0:
+                    return
+                else:
+                    setattr(ros_message, attr, getattr(sbp_message, attr))
             pub.publish(ros_message)
 
         return callback
@@ -435,14 +405,19 @@ class Piksi:
     def navsatfix_callback(self, msg_raw, **metadata):
         msg = MsgPosLLH(msg_raw)
 
-        # SPP GPS messages.
+        # Invalid messages.
         if msg.flags == 0:
+            return
+        # SPP GPS messages.
+        elif msg.flags == 1:
             self.publish_spp(msg.lat, msg.lon, msg.height)
+            
+        #TODO: elif msg.flags == 2 (Differential GNSS (DGNSS))
 
         # RTK GPS messages.
-        elif msg.flags == 1 or msg.flags == 2:
+        elif msg.flags == 3 or msg.flags == 4:
 
-            if msg.flags == 2 and self.debug_mode:  # RTK float only in debug mode.
+            if msg.flags == 3 and self.debug_mode:  # RTK float only in debug mode.
                 self.publish_rtk_float(msg.lat, msg.lon, msg.height)
             else:  # RTK fix.
                 # Use first RTK fix to set origin ENU frame, if it was not set by rosparam

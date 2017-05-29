@@ -8,8 +8,8 @@ GIT_REPO_LIBSBP=git@github.com:swift-nav/libsbp.git
 REPO_TAG=v2.2.1 #version you want to chechout before installing
 
 # Install libsbp in $HOME and compile it
-mkdir -p ~/software/piksi_sbp_lib
-cd ~/software/piksi_sbp_lib
+mkdir -p ~/software/piksi_sbp_lib_multi
+cd ~/software/piksi_sbp_lib_multi
 git clone $GIT_REPO_LIBSBP
 cd ./libsbp
 git checkout $REPO_TAG
@@ -29,4 +29,4 @@ sudo make python
 echo "SBP Library Installed"
 
 # Export PYTHONPATH and make sure it points to the python subdirectory of the repository
-sh -c 'echo "export PYTHONPATH=\${PYTHONPATH}:~/software/piksi_sbp_lib/libsbp/python #add libsbp for RTK GPS Piksi devices" >> ~/.bashrc'
+sh -c 'echo "export PYTHONPATH=\${PYTHONPATH}:~/software/piksi_sbp_lib_multi/libsbp/python #add libsbp for RTK GPS Piksi devices" >> ~/.bashrc'
