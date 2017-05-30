@@ -154,7 +154,7 @@ class Piksi:
 
     def create_callbacks(self):
         # Callbacks "manually" implemented.
-        self.handler.add_callback(self.navsatfix_callback, msg_type=SBP_MSG_POS_LLH)
+        self.handler.add_callback(self.pos_llh_callback, msg_type=SBP_MSG_POS_LLH)
         self.handler.add_callback(self.heartbeat_callback, msg_type=SBP_MSG_HEARTBEAT)
         self.handler.add_callback(self.tracking_state_callback, msg_type=SBP_MSG_TRACKING_STATE)
         self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE)
@@ -340,7 +340,7 @@ class Piksi:
             for attr in attrs:
                 if attr == 'flags':
                     if (msg.flags & 0x07) == 0:
-                        return
+                        return # invalid message, do not publish it.
                 setattr(ros_message, attr, getattr(sbp_message, attr))
             pub.publish(ros_message)
 
@@ -401,7 +401,7 @@ class Piksi:
         else:
             rospy.logwarn("Received external SBP msg, but Piksi not connected.")
 
-    def navsatfix_callback(self, msg_raw, **metadata):
+    def pos_llh_callback(self, msg_raw, **metadata):
         msg = MsgPosLLH(msg_raw)
 
         # Invalid messages.
