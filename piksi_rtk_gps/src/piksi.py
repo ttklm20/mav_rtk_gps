@@ -123,10 +123,10 @@ class Piksi:
         self.transform_child_frame_id = rospy.get_param('~transform_child_frame_id', 'gps_receiver')
 
         if rospy.has_param('~latitude0_deg') and rospy.has_param('~longitude0_deg') and rospy.has_param(
-                '~altitude0_deg'):
+                '~altitude0'):
             latitude0 = rospy.get_param('~latitude0_deg')
             longitude0 = rospy.get_param('~longitude0_deg')
-            altitude0 = rospy.get_param('~altitude0_deg')
+            altitude0 = rospy.get_param('~altitude0')
 
             # Set origin ENU frame to coordinate specified by rosparam.
             self.init_geodetic_reference(latitude0, longitude0, altitude0)
