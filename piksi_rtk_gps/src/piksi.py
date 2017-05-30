@@ -415,8 +415,6 @@ class Piksi:
         #elif msg.flags == 2
         
         # RTK GPS messages.
-        elif msg.flags == 3 or msg.flags == 4:
-
         elif msg.flags == 3 and self.debug_mode:
             self.publish_rtk_float(msg.lat, msg.lon, msg.height)
         elif msg.flags == 4:
@@ -548,6 +546,18 @@ class Piksi:
             self.receiver_state_msg.cn0 = tracking_state_msg.cn0
             self.receiver_state_msg.tracking_running = tracking_state_msg.state
             self.publish_receiver_state_msg()
+
+#     def utc_time_callback(self, msg_raw, **metadata):
+#         msg = MsgUtcTime(msg_raw)
+#
+#         # check i message is valid
+#         if msg.flags & 0x01 == True: # msg valid TODO: use bitmask instead
+#             # TODO: calc delta_t to rospy.Time.now()
+#             # delta_t_vec.append(delta_t)
+#             # self.delta_t_MA = moving_average_filter(delta_t_vec, N)
+#             return
+#         else: # msg invalid
+#             return
 
     def publish_receiver_state_msg(self):
         self.receiver_state_msg.header.stamp = rospy.Time.now()
@@ -713,6 +723,10 @@ class Piksi:
 
         return transform_msg
 
+#     def moving_average_filter(self, values, window):
+#         weights = np.repeat(1.0, window)/window
+#         vma = np.convolve(values, weights, 'valid')
+#         return vma
 
 # Main function.
 if __name__ == '__main__':
