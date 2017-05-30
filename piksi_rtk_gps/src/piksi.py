@@ -38,8 +38,8 @@ import threading
 from sbp.piksi import MsgUartState, SBP_MSG_UART_STATE
 
 class Piksi:
-    LIB_SBP_VERSION = '1.2.1'  # sbp version used to test this driver
-    LIB_SBP_VERSION_MULTI = '2.2.1' # sbp version used for Piksi Multi
+    LIB_SBP_VERSION = '1.2.1'  # SBP version used for Piksi v2.
+    LIB_SBP_VERSION_MULTI = '2.2.1' # SBP version used for Piksi Multi.
 
     # Geodetic Constants.
     kSemimajorAxis = 6378137
@@ -49,15 +49,15 @@ class Piksi:
     kFlattening = 1 / 298.257223563
 
     def __init__(self):
-        # Check which device is used (piksi v2 / piksi multi)
+        # Check which device is used (piksi v2 / piksi multi).
         self.use_piksi_multi = rospy.get_param('~use_piksi_multi', False)
 
         # Print info.
-        rospy.sleep(0.5)  # wait for a while for init to complete before printing
+        rospy.sleep(0.5)  # Wait for a while for init to complete before printing.
         rospy.loginfo(rospy.get_name() + " start")
         rospy.loginfo("libsbp version currently used: " + sbp.version.get_git_version())
 
-        # Check for correct SBP library version dependent on Piksi device
+        # Check for correct SBP library version dependent on Piksi device.
         lib_sbp_version = Piksi.LIB_SBP_VERSION if self.use_piksi_multi == False else Piksi.LIB_SBP_VERSION_MULTI
         if lib_sbp_version != sbp.version.get_git_version():
             rospy.logwarn("Lib SBP version in usage (%s) is different than the one used to test this driver (%s)!" % (
@@ -110,7 +110,7 @@ class Piksi:
         self.var_rtk_fix = rospy.get_param('~var_rtk_fix', [0.0049, 0.0049, 0.01])
         self.navsatfix_frame_id = rospy.get_param('~navsatfix_frame_id', 'gps')
 
-        # Local ENU frame settings
+        # Local ENU frame settings.
         self.origin_enu_set = False
         self.latitude0 = 0.0
         self.longitude0 = 0.0
@@ -142,9 +142,9 @@ class Piksi:
         self.receiver_state_msg = self.init_receiver_state_msg()
         self.num_wifi_corrections = self.init_num_corrections_msg()
 
-        # corrections over wifi message, if we are not the base station.
+        # Corrections over wifi message, if we are not the base station.
         if not self.base_station_mode:
-            # start new thread to periodically ping base station.
+            # Start new thread to periodically ping base station.
             threading.Thread(target=self.ping_base_station_over_wifi).start()
 
         self.handler.start()
@@ -153,12 +153,13 @@ class Piksi:
         rospy.spin()
 
     def create_callbacks(self):
-        # Callbacks "manually" implemented.
+        # Callbacks implemented "manually".
         self.handler.add_callback(self.pos_llh_callback, msg_type=SBP_MSG_POS_LLH)
         self.handler.add_callback(self.heartbeat_callback, msg_type=SBP_MSG_HEARTBEAT)
         self.handler.add_callback(self.tracking_state_callback, msg_type=SBP_MSG_TRACKING_STATE)
         self.handler.add_callback(self.uart_state_callback, msg_type=SBP_MSG_UART_STATE)
 
+        # Callbacks generated "automatically".
         self.init_callback('baseline_ecef_multi', BaselineEcefMulti,
                            SBP_MSG_BASELINE_ECEF, MsgBaselineECEF,
                            'tow', 'x', 'y', 'z', 'accuracy', 'n_sats', 'flags')
@@ -204,15 +205,15 @@ class Piksi:
 
     def init_receiver_state_msg(self):
         receiver_state_msg = ReceiverState()
-        receiver_state_msg.num_sat = 0  # Unkown
-        receiver_state_msg.rtk_mode_fix = False  # Unkown
-        receiver_state_msg.sat = []  # Unkown
-        receiver_state_msg.cn0 = []  # Unkown
-        receiver_state_msg.tracking_running = []  # Unkown
-        receiver_state_msg.system_error = 255  # Unkown
-        receiver_state_msg.io_error = 255  # Unkown
-        receiver_state_msg.swift_nap_error = 255  # Unkown
-        receiver_state_msg.external_antenna_present = 255  # Unkown
+        receiver_state_msg.num_sat = 0  # Unkown.
+        receiver_state_msg.rtk_mode_fix = False  # Unkown.
+        receiver_state_msg.sat = []  # Unkown.
+        receiver_state_msg.cn0 = []  # Unkown.
+        receiver_state_msg.tracking_running = []  # Unkown.
+        receiver_state_msg.system_error = 255  # Unkown.
+        receiver_state_msg.io_error = 255  # Unkown.
+        receiver_state_msg.swift_nap_error = 255  # Unkown.
+        receiver_state_msg.external_antenna_present = 255  # Unkown.
 
         return receiver_state_msg
 
@@ -235,7 +236,7 @@ class Piksi:
                                                        ReceiverState, queue_size=10)
         publishers['uart_state_multi'] = rospy.Publisher(rospy.get_name() + '/debug/uart_state',
                                                          UartStateMulti, queue_size=10)
-        # do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
+        # Do not publish llh message, prefer publishing directly navsatfix_spp or navsatfix_rtk_fix.
         # publishers['pos_llh'] = rospy.Publisher(rospy.get_name() + '/pos_llh',
         #                                        PosLlh, queue_size=10)
         publishers['vel_ned'] = rospy.Publisher(rospy.get_name() + '/vel_ned',
@@ -265,7 +266,7 @@ class Piksi:
                                                       ImuRawMulti, queue_size=10)
         publishers['imu_aux_multi'] = rospy.Publisher(rospy.get_name() + '/debug/imu_aux',
                                                       ImuAuxMulti, queue_size=10)
-        # Topics published only if in "debug mode"
+        # Topics published only if in "debug mode".
         if self.debug_mode:
             publishers['rtk_float'] = rospy.Publisher(rospy.get_name() + '/navsatfix_rtk_float',
                                                       NavSatFix, queue_size=10)
@@ -298,7 +299,7 @@ class Piksi:
         interval_between_pings_seconds = 5
 
         while not rospy.is_shutdown():
-            # send ping command.
+            # Send ping command.
             command = ["ping",
                        "-w", str(ping_deadline_seconds),  # deadline before stopping attempt
                        "-c", "1",  # number of pings to send
@@ -306,18 +307,18 @@ class Piksi:
             ping = subprocess.Popen(command, stdout=subprocess.PIPE)
 
             out, error = ping.communicate()
-            # search for 'min/avg/max/mdev' round trip delay time (rtt) numbers.
+            # Search for 'min/avg/max/mdev' round trip delay time (rtt) numbers.
             matcher = re.compile("(\d+.\d+)/(\d+.\d+)/(\d+.\d+)/(\d+.\d+)")
 
             if matcher.search(out) == None:
-                # no ping response within ping_deadline_seconds.
-                # in python write and read operations on built-in type are atomic,
+                # No ping response within ping_deadline_seconds.
+                # In python write and read operations on built-in type are atomic,
                 # there's no need to use mutex.
                 self.num_wifi_corrections.latency = -1
             else:
                 groups_rtt = matcher.search(out).groups()
                 avg_rtt = groups_rtt[1]
-                # in python write and read operations on built-in type are atomic,
+                # In python write and read operations on built-in type are atomic,
                 # there's no need to use mutex.
                 self.num_wifi_corrections.latency = float(avg_rtt)
 
@@ -339,8 +340,10 @@ class Piksi:
             ros_message.header.stamp = rospy.Time.now()
             for attr in attrs:
                 if attr == 'flags':
+                    # Least significat three bits of flags indicate status.
                     if (msg.flags & 0x07) == 0:
-                        return # invalid message, do not publish it.
+                        return # Invalid message, do not publish it.
+
                 setattr(ros_message, attr, getattr(sbp_message, attr))
             pub.publish(ros_message)
 
@@ -356,11 +359,11 @@ class Piksi:
                 'callback_data_type' name of SBP message type for SBP library
                 '*attrs' array of attributes in ROS/SBP message
         """
-        # check that required topic has been advertised
+        # Check that required topic has been advertised.
         if topic_name in self.publishers:
             ros_message = ros_datatype()
 
-            # Add callback function
+            # Add callback function.
             pub = self.publishers[topic_name]
             callback_function = self.make_callback(callback_data_type, ros_message, pub, attrs)
             self.handler.add_callback(callback_function, msg_type=sbp_msg_type)
@@ -390,7 +393,7 @@ class Piksi:
         if self.framer:
             self.framer(msg, **metadata)
 
-            # publish debug message about wifi corrections, if enabled
+            # Publish debug message about wifi corrections, if enabled.
             self.num_wifi_corrections.header.seq += 1
             now = rospy.get_rostime()
             self.num_wifi_corrections.header.stamp = rospy.Time.now()
@@ -418,7 +421,7 @@ class Piksi:
         elif msg.flags == PosLlhMulti.FIX_MODE_FLOAT_RTK and self.debug_mode:
             self.publish_rtk_float(msg.lat, msg.lon, msg.height)
         elif msg.flags == PosLlhMulti.FIX_MODE_FIX_RTK:
-            # Use first RTK fix to set origin ENU frame, if it was not set by rosparam
+            # Use first RTK fix to set origin ENU frame, if it was not set by rosparam.
             if not self.origin_enu_set:
                 self.init_geodetic_reference(msg.lat, msg.lon, msg.height)
     
@@ -461,7 +464,7 @@ class Piksi:
         navsatfix_msg.position_covariance = [variance[0], 0, 0,
                                              0, variance[1], 0,
                                              0, 0, variance[2]]
-        # Local Enu coordinate
+        # Local Enu coordinate.
         (east, north, up) = self.geodetic_to_enu(latitude, longitude, height)
 
         # Pose message.
@@ -521,7 +524,7 @@ class Piksi:
         tracking_state_msg.cn0 = []
 
         for single_tracking_state in msg.states:
-            # take only running tracking.
+            # Take only running tracking.
             track_running = single_tracking_state.state & 0x01
             if track_running:
                 tracking_state_msg.state.append(single_tracking_state.state)
@@ -529,7 +532,7 @@ class Piksi:
                 tracking_state_msg.code.append(single_tracking_state.sid.code)
                 tracking_state_msg.cn0.append(single_tracking_state.cn0)
 
-        # publish if there's at least one element in each array.
+        # Publish if there's at least one element in each array.
         if len(tracking_state_msg.state) \
                 and len(tracking_state_msg.sat) \
                 and len(tracking_state_msg.code) \
@@ -538,7 +541,7 @@ class Piksi:
             self.publishers['tracking_state'].publish(tracking_state_msg)
 
             # Update debug msg and publish.
-            self.receiver_state_msg.num_sat = 0  # count number of satellites used to track
+            self.receiver_state_msg.num_sat = 0  # Count number of satellites used to track.
             for tracking_running in tracking_state_msg.state:
                 self.receiver_state_msg.num_sat += tracking_running
 
@@ -614,7 +617,7 @@ class Piksi:
 
         (self.initial_ecef_x, self.initial_ecef_y, self.initial_ecef_z) = self.geodetic_to_ecef(latitude, longitude,
                                                                                                 altitude)
-        # Compute ECEF to NED
+        # Compute ECEF to NED.
         phiP = math.atan2(self.initial_ecef_z,
                           math.sqrt(math.pow(self.initial_ecef_x, 2) + math.pow(self.initial_ecef_y, 2)))
         self.ecef_to_ned_matrix = self.n_re(phiP, self.longitude0)
@@ -654,7 +657,7 @@ class Piksi:
         (x, y, z) = self.geodetic_to_ecef(latitude, longitude, altitude)
         (north, east, down) = self.ecef_to_ned(x, y, z)
 
-        # return East, North, Up coordinate
+        # Return East, North, Up coordinate.
         return east, north, -down
 
     def n_re(self, lat_radians, lon_radians):
