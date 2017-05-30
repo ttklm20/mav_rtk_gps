@@ -341,8 +341,7 @@ class Piksi:
                 if attr == 'flags':
                     if (msg.flags & 0x07) == 0:
                         return
-                else:
-                    setattr(ros_message, attr, getattr(sbp_message, attr))
+                setattr(ros_message, attr, getattr(sbp_message, attr))
             pub.publish(ros_message)
 
         return callback
@@ -418,18 +417,18 @@ class Piksi:
         # RTK GPS messages.
         elif msg.flags == 3 or msg.flags == 4:
 
-            if msg.flags == 3 and self.debug_mode:  # RTK float only in debug mode.
-                self.publish_rtk_float(msg.lat, msg.lon, msg.height)
-            else:  # RTK fix.
-                # Use first RTK fix to set origin ENU frame, if it was not set by rosparam
-                if not self.origin_enu_set:
-                    self.init_geodetic_reference(msg.lat, msg.lon, msg.height)
+        elif msg.flags == 3 and self.debug_mode:
+            self.publish_rtk_float(msg.lat, msg.lon, msg.height)
+        elif msg.flags == 4:
+            # Use first RTK fix to set origin ENU frame, if it was not set by rosparam
+            if not self.origin_enu_set:
+                self.init_geodetic_reference(msg.lat, msg.lon, msg.height)
+    
+            self.publish_rtk_fix(msg.lat, msg.lon, msg.height)
 
-                self.publish_rtk_fix(msg.lat, msg.lon, msg.height)
-
-            # Update debug msg and publish.
-            self.receiver_state_msg.rtk_mode_fix = True if (msg.flags == 1) else False
-            self.publish_receiver_state_msg()
+        # Update debug msg and publish.
+        self.receiver_state_msg.rtk_mode_fix = True if (msg.flags == 4) else False
+        self.publish_receiver_state_msg()
 
     def publish_spp(self, latitude, longitude, height):
         self.publish_gps_point(latitude, longitude, height, self.var_spp, NavSatStatus.STATUS_FIX,
