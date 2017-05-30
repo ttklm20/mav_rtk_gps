@@ -405,19 +405,19 @@ class Piksi:
         msg = MsgPosLLH(msg_raw)
 
         # Invalid messages.
-        if msg.flags == 0:
+        if msg.flags == PosLlhMulti.FIX_MODE_INVALID:
             return
         # SPP GPS messages.
-        elif msg.flags == 1:
+        elif msg.flags == PosLlhMulti.FIX_MODE_SPP:
             self.publish_spp(msg.lat, msg.lon, msg.height)
             
         #TODO: Differential GNSS (DGNSS)
-        #elif msg.flags == 2
+        #elif msg.flags == PosLlhMulti.FIX_MODE_DGNSS
         
         # RTK GPS messages.
-        elif msg.flags == 3 and self.debug_mode:
+        elif msg.flags == PosLlhMulti.FIX_MODE_FLOAT_RTK and self.debug_mode:
             self.publish_rtk_float(msg.lat, msg.lon, msg.height)
-        elif msg.flags == 4:
+        elif msg.flags == PosLlhMulti.FIX_MODE_FIX_RTK:
             # Use first RTK fix to set origin ENU frame, if it was not set by rosparam
             if not self.origin_enu_set:
                 self.init_geodetic_reference(msg.lat, msg.lon, msg.height)
@@ -425,7 +425,7 @@ class Piksi:
             self.publish_rtk_fix(msg.lat, msg.lon, msg.height)
 
         # Update debug msg and publish.
-        self.receiver_state_msg.rtk_mode_fix = True if (msg.flags == 4) else False
+        self.receiver_state_msg.rtk_mode_fix = True if (msg.flags == PosLlhMulti.FIX_MODE_FIX_RTK) else False
         self.publish_receiver_state_msg()
 
     def publish_spp(self, latitude, longitude, height):

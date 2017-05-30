@@ -14,3 +14,9 @@ uint16 h_accuracy   # Horizontal position accuracy estimate.
 uint16 v_accuracy   # Vertical position accuracy estimate.
 uint8 n_sats        # Number of satellites used in solution.
 uint8 flags         # Status flags, see MSG_POS_ECEF message description in SBP documentation.
+
+uint8 FIX_MODE_INVALID = 0
+uint8 FIX_MODE_SPP = 1
+uint8 FIX_MODE_DGNSS = 2
+uint8 FIX_MODE_FLOAT_RTK = 3
+uint8 FIX_MODE_FIX_RTK = 4
