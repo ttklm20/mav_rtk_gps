@@ -89,20 +89,8 @@ class Piksi:
         self.base_station_ip_for_latency_estimation = rospy.get_param(
             '~base_station_ip_for_latency_estimation',
             '10.10.10.1')
-        # Subscribe to OBS messages and relay them via UDP if in base station mode.
-        if self.base_station_mode:
-            rospy.loginfo("Starting in base station mode")
-            self._multicaster = UdpHelpers.SbpUdpMulticaster(self.udp_broadcast_addr, self.udp_port)
-
-            self.handler.add_callback(self.callback_sbp_obs, msg_type=SBP_MSG_OBS)
-            #self.handler.add_callback(self.callback_sbp_obs_dep_a, msg_type=SBP_MSG_OBS_DEP_A)
-            #self.handler.add_callback(self.callback_sbp_obs_dep_b, msg_type=SBP_MSG_OBS_DEP_B)
-            # not sure if SBP_MSG_BASE_POS_LLH or SBP_MSG_BASE_POS_ECEF is better?
-            #self.handler.add_callback(self.callback_sbp_base_pos_llh, msg_type=SBP_MSG_BASE_POS_LLH)
-            self.handler.add_callback(self.callback_sbp_base_pos_ecef, msg_type=SBP_MSG_BASE_POS_ECEF)
-        else:
-            rospy.loginfo("Starting in client station mode")
-            self._multicast_recv = UdpHelpers.SbpUdpMulticastReceiver(self.udp_port, self.multicast_callback)
+        self.multicaster = []
+        self.multicast_recv = []
 
         # Navsatfix settings.
         self.var_spp = rospy.get_param('~var_spp', [25.0, 25.0, 64.0])
@@ -194,6 +182,21 @@ class Piksi:
         # self.init_callback('pos_llh', PosLlh,
         #                   SBP_MSG_POS_LLH, MsgPosLLH,
         #                   'tow', 'lat', 'lon', 'height', 'h_accuracy', 'v_accuracy', 'n_sats', 'flags')
+
+        # Subscribe to OBS messages and relay them via UDP if in base station mode.
+        if self.base_station_mode:
+            rospy.loginfo("Starting in base station mode")
+            self.multicaster = UdpHelpers.SbpUdpMulticaster(self.udp_broadcast_addr, self.udp_port)
+
+            self.handler.add_callback(self.callback_sbp_obs, msg_type=SBP_MSG_OBS)
+            #self.handler.add_callback(self.callback_sbp_obs_dep_a, msg_type=SBP_MSG_OBS_DEP_A)
+            #self.handler.add_callback(self.callback_sbp_obs_dep_b, msg_type=SBP_MSG_OBS_DEP_B)
+            # not sure if SBP_MSG_BASE_POS_LLH or SBP_MSG_BASE_POS_ECEF is better?
+            #self.handler.add_callback(self.callback_sbp_base_pos_llh, msg_type=SBP_MSG_BASE_POS_LLH)
+            self.handler.add_callback(self.callback_sbp_base_pos_ecef, msg_type=SBP_MSG_BASE_POS_ECEF)
+        else:
+            rospy.loginfo("Starting in client station mode")
+            self.multicast_recv = UdpHelpers.SbpUdpMulticastReceiver(self.udp_port, self.multicast_callback)
 
     def init_num_corrections_msg(self):
         num_wifi_corrections = InfoWifiCorrections()
@@ -370,23 +373,23 @@ class Piksi:
 
     def callback_sbp_obs(self, msg, **metadata):
         # rospy.logwarn("CALLBACK SBP OBS")
-        self._multicaster.sendSbpPacket(msg)
+        self.multicaster.sendSbpPacket(msg)
 
     def callback_sbp_obs_dep_a(self, msg, **metadata):
         # rospy.logwarn("CALLBACK SBP OBS DEP A")
-        self._multicaster.sendSbpPacket(msg)
+        self.multicaster.sendSbpPacket(msg)
 
     def callback_sbp_obs_dep_b(self, msg, **metadata):
         # rospy.logwarn("CALLBACK SBP OBS DEP B")
-        self._multicaster.sendSbpPacket(msg)
+        self.multicaster.sendSbpPacket(msg)
 
     def callback_sbp_base_pos_llh(self, msg, **metadata):
         # rospy.logwarn("CALLBACK SBP OBS BASE LLH")
-        self._multicaster.sendSbpPacket(msg)
+        self.multicaster.sendSbpPacket(msg)
 
     def callback_sbp_base_pos_ecef(self, msg, **metadata):
         # rospy.logwarn("CALLBACK SBP OBS BASE LLH")
-        self._multicaster.sendSbpPacket(msg)
+        self.multicaster.sendSbpPacket(msg)
 
     def multicast_callback(self, msg, **metadata):
         # rospy.logwarn("MULTICAST Callback")
