@@ -88,7 +88,7 @@ class Piksi:
         self.udp_port = rospy.get_param('~broadcast_port', 26078)
         self.base_station_ip_for_latency_estimation = rospy.get_param(
             '~base_station_ip_for_latency_estimation',
-            '10.10.50.1')
+            '10.10.10.1')
         # Subscribe to OBS messages and relay them via UDP if in base station mode.
         if self.base_station_mode:
             rospy.loginfo("Starting in base station mode")
