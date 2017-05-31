@@ -189,8 +189,6 @@ class Piksi:
             self.multicaster = UdpHelpers.SbpUdpMulticaster(self.udp_broadcast_addr, self.udp_port)
 
             self.handler.add_callback(self.callback_sbp_obs, msg_type=SBP_MSG_OBS)
-            #self.handler.add_callback(self.callback_sbp_obs_dep_a, msg_type=SBP_MSG_OBS_DEP_A)
-            #self.handler.add_callback(self.callback_sbp_obs_dep_b, msg_type=SBP_MSG_OBS_DEP_B)
             # not sure if SBP_MSG_BASE_POS_LLH or SBP_MSG_BASE_POS_ECEF is better?
             #self.handler.add_callback(self.callback_sbp_base_pos_llh, msg_type=SBP_MSG_BASE_POS_LLH)
             self.handler.add_callback(self.callback_sbp_base_pos_ecef, msg_type=SBP_MSG_BASE_POS_ECEF)
@@ -398,7 +396,6 @@ class Piksi:
 
             # Publish debug message about wifi corrections, if enabled.
             self.num_wifi_corrections.header.seq += 1
-            now = rospy.get_rostime()
             self.num_wifi_corrections.header.stamp = rospy.Time.now()
             self.num_wifi_corrections.received_corrections += 1
             if not self.base_station_mode:
