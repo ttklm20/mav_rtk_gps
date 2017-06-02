@@ -10,6 +10,7 @@
 import rospy
 import math
 import numpy as np
+import std_srvs.srv
 # Import message types
 from sensor_msgs.msg import NavSatFix, NavSatStatus
 from piksi_rtk_msgs.msg import *
@@ -136,6 +137,12 @@ class Piksi:
             threading.Thread(target=self.ping_base_station_over_wifi).start()
 
         self.handler.start()
+
+        # Reset service.
+        self.reset_piksi_service = rospy.Service(rospy.get_name() +
+                                                 '/reset_piksi',
+                                                  std_srvs.srv.SetBool,
+                                                  self.reset_piksi_service_callback)
 
         # Spin.
         rospy.spin()
@@ -725,6 +732,24 @@ class Piksi:
         transform_msg.rotation.w = 1.0
 
         return transform_msg
+
+    def reset_piksi_service_callback(self, request):
+        response = std_srvs.srv.SetBoolResponse()
+
+        if request.data:
+            # Send reset message.
+            reset_sbp = SBP(SBP_MSG_RESET)
+            reset_sbp.payload=''
+            reset_msg = reset_sbp.pack()
+            self.driver.write(reset_msg)
+
+            response.success = True
+            response.message = "Piksi reset command sent."
+        else:
+            response.success = False
+            response.message = "Piksi reset command not sent."
+
+        return response
 
 #     def moving_average_filter(self, values, window):
 #         weights = np.repeat(1.0, window)/window
