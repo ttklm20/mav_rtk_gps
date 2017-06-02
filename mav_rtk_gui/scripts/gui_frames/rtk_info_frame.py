@@ -10,8 +10,8 @@ import helpers
 from Tkinter import *
 
 from piksi_rtk_msgs.msg import ReceiverState
-from piksi_rtk_msgs.msg import UartState
-from piksi_rtk_msgs.msg import BaselineNed
+from piksi_rtk_msgs.msg import UartStateMulti
+from piksi_rtk_msgs.msg import BaselineNedMulti
 from piksi_rtk_msgs.msg import InfoWifiCorrections
 
 wifiCorrectionsHzAverage = 5  # Compute corrections Hz over wifiCorrectionsHzAverage seconds
@@ -115,9 +115,9 @@ class RtkInfoFrame:
         # Subscribe to topics.
         rospy.Subscriber(self.topic_names['piksi_receiver_state'], ReceiverState,
                          self.receiver_state_callback)
-        rospy.Subscriber(self.topic_names['piksi_uart_state'], UartState,
+        rospy.Subscriber(self.topic_names['piksi_uart_state'], UartStateMulti,
                          self.uart_state_callback)
-        rospy.Subscriber(self.topic_names['piksi_baseline_ned'], BaselineNed,
+        rospy.Subscriber(self.topic_names['piksi_baseline_ned'], BaselineNedMulti,
                          self.baseline_ned_callback)
         rospy.Subscriber(self.topic_names['piksi_wifi_corrections'], InfoWifiCorrections,
                          self.wifi_corrections_callback)
