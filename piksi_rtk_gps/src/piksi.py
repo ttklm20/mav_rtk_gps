@@ -743,6 +743,12 @@ class Piksi:
             reset_msg = reset_sbp.pack()
             self.driver.write(reset_msg)
 
+            rospy.logwarn("Piksi hard reset via rosservice call.")
+
+            # Init messages with "memory".
+            self.receiver_state_msg = self.init_receiver_state_msg()
+            self.num_wifi_corrections = self.init_num_corrections_msg()
+
             response.success = True
             response.message = "Piksi reset command sent."
         else:
